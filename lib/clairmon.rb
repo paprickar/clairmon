@@ -41,14 +41,14 @@ class Clairmon
 
   def scanImage(imageName)
     value = %x[#{@CLAIRCTL_BINARY} analyze #{imageName} --config #{@CLAIRCTL_CONFIG_PATH}]
-
-    parsedValue     = value.split("\n")
+    new_value = value.encode('utf-8', 'binary', :invalid => :replace, :undef => :replace, :replace => '')
+    parsedValue     = new_value.encode('UTF-8').split("\n")
     vulnerabilities = 0
 
     parsedValue.each do |line|
       if line.include? "Analysis"
-        parsedValueLine = parsedValue.to_a[4].split(" ").to_a
-        vulnerabilities += parsedValueLine[4].to_i
+        splittedLine = line.split(" ").to_a
+        vulnerabilities += splittedLine[3].to_i
       end
     end
 
@@ -75,10 +75,14 @@ class Clairmon
 
   def getFullStatus
     runningImagesArray = []
-    self.getRunningImages.each do |scan|
-      if self.ignored(scan) == false
-        vuns = self.scanImage(scan)
-        runningImagesArray << { 'image' => scan, 'vulnerabilities' => vuns }
+    runningImages = self.getRunningImages
+
+    if runningImages.count > 0
+      runningImages.each do |image|
+        if self.ignored(image) == false
+          vuns = self.scanImage(image)
+          runningImagesArray << { 'image' => image, 'vulnerabilities' => vuns }
+        end
       end
     end
 
